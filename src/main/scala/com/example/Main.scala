@@ -13,9 +13,6 @@ object Main {
   LoggerUtil.setRootLogLevel(ch.qos.logback.classic.Level.INFO)
   val log = Logger("Main")
 
-  // kafka publishing topic
-  val topic = "input-topic"
-
   // Formatter for json4s
   implicit val jsonFormats = org.json4s.DefaultFormats
 
@@ -27,13 +24,15 @@ object Main {
     */
   def main(args: Array[String]) = {
 
+    val topic = args.headOption.getOrElse("input-topic")    
+  
     Runtime.getRuntime.addShutdownHook(new Thread(() => {
       println(">>>>>> Closing KProducer...")
       KProducer.close()
     }))
 
-    kvInputLoop()
-    //sendContinuously(100000)
+    kvInputLoop(topic)
+    //sendContinuously(100000, topic)
 
     log.debug("Closing KafkaProducer...")
 
@@ -43,7 +42,7 @@ object Main {
   /** Create a key set of the specified size and send values through continuously
     *
     */
-  def sendContinuously(numKeys: Long) = {
+  def sendContinuously(numKeys: Long, topic: String) = {
     var map = (0L until numKeys).map{ _ => (java.util.UUID.randomUUID.toString, "1") }.toMap
 
     val delayMS = 1000
@@ -61,7 +60,7 @@ object Main {
   /** Accept input and produce message on the topic
     *
     */
-  def kvInputLoop(): Unit = {
+  def kvInputLoop(topic: String): Unit = {
 
     while (true) {
       val command = scala.io.StdIn.readLine("Enter k,v message (comma-delimited): ")
